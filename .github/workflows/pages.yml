@@ -1,0 +1,83 @@
+name: Deploy naar GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Eén deploy tegelijk; een lopende productie-deploy niet afbreken.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Controleer of er een build-script is
+        id: detect
+        run: |
+          if [ -f package.json ] && node -e "process.exit(require('./package.json').scripts?.build ? 0 : 1)"; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Node.js instellen
+        if: steps.detect.outputs.build == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Dependencies installeren
+        if: steps.detect.outputs.build == 'true'
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install --no-audit --no-fund; fi
+
+      - name: Bouwen
+        if: steps.detect.outputs.build == 'true'
+        run: npm run build
+
+      - name: Publiceerbare bestanden verzamelen
+        run: |
+          mkdir -p _site
+          rsync -a ./ _site/ \
+            --exclude '_site/' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'node_modules/' \
+            --exclude 'src/' \
+            --exclude 'package.json' \
+            --exclude 'package-lock.json' \
+            --exclude 'tailwind.config.*' \
+            --exclude 'postcss.config.*' \
+            --exclude '.gitignore' \
+            --exclude '*.md'
+          touch _site/.nojekyll
+
+      - name: Pages configureren
+        uses: actions/configure-pages@v5
+
+      - name: Artifact uploaden
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy naar GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
