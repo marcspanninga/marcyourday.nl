@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+@theme {
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "Jost", system-ui, sans-serif;
+
+  --color-night: #14110D;
+  --color-nline: #322B22;
+  --color-nink: #F3EBDD;
+  --color-nmuted: #A99F8E;
+  --color-gold: #D2B57F;
+  --color-brass: #8E6F43;
+  --color-rec: #E0533F;
+
+  --animate-kenburns: kenburns 20s ease-in-out infinite alternate;
+  --animate-rec: rec 1.4s infinite;
+
+  @keyframes kenburns {
+    from { transform: scale(1); }
+    to { transform: scale(1.08); }
+  }
+  @keyframes rec {
+    50% { opacity: .15; }
+  }
+}
+
+@layer base {
+  :focus-visible { outline: 2px solid var(--color-gold); outline-offset: 3px; }
+  [x-cloak] { display: none !important; }
+}
+
+/* Zoekerhoeken over het beeld */
+@utility corner {
+  position: absolute;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-color: color-mix(in oklab, var(--color-nink) 75%, transparent);
+}
+
+/* Beweging stopt bij voorkeur van de bezoeker of via de pauzeknop */
+@media (prefers-reduced-motion: reduce) {
+  .animate-kenburns, .animate-rec { animation: none; }
+}
+.is-paused .animate-kenburns, .is-paused .animate-rec { animation-play-state: paused; }
